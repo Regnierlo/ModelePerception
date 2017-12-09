@@ -1,5 +1,7 @@
 function [rappel, precision] = test()
-
+%     % on part de zero afin de s'assurer que toutes les variables et toutes
+%     % les images soient réinitialisées
+        clear all; close all;
 %     % Le chemin relation de la base de référence
 %     img_path = './dbr/';
 % 
@@ -29,10 +31,11 @@ function [rappel, precision] = test()
     I = imread(uigetimagefile());
     [centrex centrey] = centre(I);
     contourM = contour(I,centrex,centrey,n);
-    
-    affiche(I,centrex,centrey,contourM);
+    F = TF1D(contourM);
+    affiche(I,centrex,centrey,contourM,F);
 end
 
+%%Fonction permettant de trouver le centre d'un objet dans une image
 function [x,y] = centre(I)
     Ibw = im2bw(I);
     Ibw = imfill(Ibw,'holes');
@@ -43,21 +46,24 @@ function [x,y] = centre(I)
     y = floor(stat(1).Centroid(2));
 end
 
+%%Fonction permettant de calculer les contours d'une image en partant de
+%%son centre
 function [contourM] = contour(I,centrex,centrey,n)
-    pasAngle = tan(rad2deg((2*pi)/n));
-    pente = pasAngle;
+    angle = rad2deg((2*pi)/n);
+    pente = angle;
     contourM = zeros(2,n);
     for i=1:n
         if pente >= tan(rad2deg(pi/2)) && pente <= tan(rad2deg(pi))
-            [x,y] = bresenhamHD(I,pente,centrex,centrey,0)
+            [x,y] = bresenhamHD(I,pente,centrex,centrey,0);
             contourM(1,i) = pente;
             contourM(2,i) = pdist2([centrex,centrey],[x,y],'euclidean');
         end
-        pente = pente + pasAngle;
+        pente = pente + angle;
     end
-    contourM
+    contourM;
 end
 
+%%Fonction permettant de tracer une ligne
 function [x,y] = bresenhamHD (I,d,midx,midy,posi)
     S=2*d-1;
     inc1=2*d;
@@ -75,42 +81,67 @@ function [x,y] = bresenhamHD (I,d,midx,midy,posi)
     end
 end
 
-function [] = affiche(I,centrex,centrey,contourM)
+%%Fonction permettant de calculer la TF 1D du contour
+function [F] = TF1D (contourM)
+    F= fft(contourM);
+end
+
+%%Fonction d'affichage
+function [] = affiche(I,centrex,centrey,contourM,F)
     %centre
     subplot(3,5,1)
     imshow(I);hold on;
+    %Affichage du centre via une croix rouge sur l'image
     plot(centrex, centrey,'r+');
-    
+    title('Objet de référence')
+
     %contours
     subplot(3,5,[2 3])
     plot(contourM);
+    title('Coordonnées polaire')
+    xlabel('Angles')
+    ylabel('Rayon')
     
     %FFT
     subplot(3,5,[4 5])
-    plot(1,1);
+    plot(F);
+    title('Calcul de TF 1D')
+    xlabel('Amplitude')
+    ylabel('Fréquences')
     
     %TOP5 score
         %1
         subplot(3,5,6)
         imshow(I);
+        title('Top 1')
         %2
         subplot(3,5,7)
         imshow(I);
+        title('Top 2')
         %3
         subplot(3,5,8)
         imshow(I);
+        title('Top 3')
         %4
         subplot(3,5,9)
         imshow(I);
+        title('Top 4')
         %5
         subplot(3,5,10)
         imshow(I);
+        title('Top 5')
         
     %courbe precision/rappel
     subplot(3,5,[11 12 13])
     plot(1,1);
+    title('Courbe de la précision sur le rappel')
+    xlabel('Précision')
+    ylabel('Rappel')
     
     %courbe precision moyenne/rappel
     subplot(3,5,[14 15])
     plot(1,1);
+    title('Courbe de la précision moyenne sur le rappel')
+    xlabel('Précision')
+    ylabel('Rappel')
 end

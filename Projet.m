@@ -26,7 +26,7 @@ function [rappel, precision] = test()
     %end
     
     %nombre de pts à prendre pour le contour
-    n = 50;
+    n = 5000;
     
     I = imread(uigetimagefile());
     [centrex centrey] = centre(I);
@@ -49,18 +49,20 @@ end
 %%Fonction permettant de calculer les contours d'une image en partant de
 %%son centre
 function [contourM] = contour(I,centrex,centrey,n)
-    angle = rad2deg((2*pi)/n);
-    pente = angle;
+    pasAngle = rad2deg((2*pi)/n);
+    %pasAngle = rad2deg((2*pi)/n);
+    pente = 0;
     contourM = zeros(2,n);
     for i=1:n
+           pente = pente + tan(pasAngle);
         if pente >= tan(rad2deg(pi/2)) && pente <= tan(rad2deg(pi))
             [x,y] = bresenhamHD(I,pente,centrex,centrey,0);
             contourM(1,i) = pente;
             contourM(2,i) = pdist2([centrex,centrey],[x,y],'euclidean');
+                
         end
-        pente = pente + angle;
     end
-    contourM;
+    contourM
 end
 
 %%Fonction permettant de tracer une ligne
@@ -84,6 +86,7 @@ end
 %%Fonction permettant de calculer la TF 1D du contour
 function [F] = TF1D (contourM)
     F= fft(contourM);
+    %F= fft(contourM(1,:),contourM(2,:));
 end
 
 %%Fonction d'affichage
@@ -97,7 +100,7 @@ function [] = affiche(I,centrex,centrey,contourM,F)
 
     %contours
     subplot(3,5,[2 3])
-    plot(contourM);
+    plot(contourM(1,:),contourM(2,:));
     title('Coordonnées polaire')
     xlabel('Angles')
     ylabel('Rayon')

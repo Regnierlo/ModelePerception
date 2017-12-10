@@ -26,70 +26,135 @@ function [rappel, precision] = test()
     %end
     
     %nombre de pts à prendre pour le contour
-    n = 5000;
+    n = 2000;
     
+    %on lit l'image choisie par l'utilisateur
     I = imread(uigetimagefile());
+    
+    %on récupère sa taille via les variables m lignes et n colonnes
+    [ligne,colonne]=size(I);
+    
+    %appel de la fonction centre avec l'image I en paramètre
     [centrex centrey] = centre(I);
+    
+    %appel de la fonction contour avec l'img I en paramètre et les
+    %centres x et y ainsi que le nb de pts pour le contour de l'img
     contourM = contour(I,centrex,centrey,n);
+    
+    %appel de la fonction de la transformée de fourier 1D
     F = TF1D(contourM);
+    
+    %appel de la fonction d'affichage
     affiche(I,centrex,centrey,contourM,F);
 end
 
-%%Fonction permettant de trouver le centre d'un objet dans une image
+%%
+%Fonction permettant de trouver le centre d'un objet dans une image
 function [x,y] = centre(I)
-    Ibw = im2bw(I);
+    %binarisation de l'image 
+    Ibw = imbinarize(I);
+    
+    %remplissage des "trous" pour permettre une lecture de l'image sans
+    %défaut, cela améliore la qualité du contour
     Ibw = imfill(Ibw,'holes');
+    
+    %permet de labeliser une image
     Ilabel = bwlabel(Ibw);
+    
+    %permet de calculer le centre d'un objet labelisé 
     stat = regionprops(Ilabel,'centroid');
+   
+    %on l'affiche et on le maintien car cela permettra pour plus tard de
+    %superposer le centre dans la fonction affichage
     imshow(I); hold on;
+    
+    %permet de faire une approximation à 1 afin d'avoir un pixel défini 
     x = floor(stat(1).Centroid(1));
     y = floor(stat(1).Centroid(2));
 end
 
-%%Fonction permettant de calculer les contours d'une image en partant de
-%%son centre
+%%
+%Fonction permettant de calculer les contours d'une image en partant de
+%son centre
 function [contourM] = contour(I,centrex,centrey,n)
-    pasAngle = rad2deg((2*pi)/n);
-    %pasAngle = rad2deg((2*pi)/n);
-    pente = 0;
+%   definition des variables : 
+%   angle = angle qui défini le décalage entre chaque point
+%   x1|y1 = centre de l'img
+%   x2|y2 = centre du point qui défini un contour (intersection entre blanc
+%   et noir)
+%   contourM = tableau 2D qui permet de récupérer les coordonnées de x2|y2
+%   afin de les relier grâce à la fonction de tracage
+    
     contourM = zeros(2,n);
-    for i=1:n
-           pente = pente + tan(pasAngle);
-        if pente >= tan(rad2deg(pi/2)) && pente <= tan(rad2deg(pi))
-            [x,y] = bresenhamHD(I,pente,centrex,centrey,0);
-            contourM(1,i) = pente;
-            contourM(2,i) = pdist2([centrex,centrey],[x,y],'euclidean');
-                
-        end
+    
+    for i=1:n  
+        
+        %calcul du coef directeur (à revoir parce que je n'arrive pas à
+        %tracer l'ensemble des traits, genre ça va de 3pi/2 à 11pi/6 et je
+        %ne sais pas pourquoi... 
+        alpha = tan(rad2deg(i/2*n*pi));
+        
+        %le 1 est arbitraire car coefDirecteur = y / tan(alpha), or ici y
+        %est le pdist2([centrex, centrey], [???,???]) en gros c'est la
+        %droite qui fait l'angle alpha avec l'abscisse/ordonnée suivant le
+        %cadran du cercle trigo... Donc ici c'est le point obscure qui faut
+        %travailler mais là il est 3h30 du mat et je vais dormir lel
+        coefD = 1/alpha;
+        %fin du calcul du coef directeur
+         
+        %appel de la fonction bresenham
+        [x2,y2] = bresenham(I,coefD,centrex,centrey);
+        
+        %on met dans la 1e ligne de la matrice contour m : l'angle à
+        %l'indice i 
+        % et dans la 2e ligne : 
+        contourM(1,i) = i/n*360;
+        contourM(2,i) = pdist2([centrex,centrey],[x2,y2],'euclidean');
+        
+        %Affichage des traits tracés via les angles + vecteurs associés à
+        %chaques traits (cf function line between 2 pts)
+        A = [centrex y2];
+        B = [centrey x2];
+        plot(A,B,'b*');
+        plot(centrex, centrey,'r+');
+        line(A,B);
     end
-    contourM
+    
+    %affichage de l'image avec l'ensemble des tracés
+    figure,imshow(I);hold on;
 end
 
-%%Fonction permettant de tracer une ligne
-function [x,y] = bresenhamHD (I,d,midx,midy,posi)
-    S=2*d-1;
-    inc1=2*d;
-    inc2=2*d-2;
-    y=midy;
-    x=midx;
-    while I(x,y)~=0
-        if S < 0
-            S = S + inc1;
-        else
-            S = S + inc2;
-            y = y + 1;
-        end
-        x=x+1;
-    end
+%%
+%Fonction permettant de déterminer le contour d'un objet
+function [x,y] = bresenham(I,d,midx,midy)    
+     S=2*d-1;
+     inc1=2*d;
+     inc2=2*d-2;
+     y=midy;
+     x=midx;
+     
+     %tant que les coordonnées du pixel sont différentes de 0, à savoir
+     %blanc
+     while I(x,y)~=0
+         if S < 0
+             S = S + inc1;
+         else
+             S = S + inc2;
+             y = y + 1;
+         end
+         x=x+1;
+     end
 end
 
-%%Fonction permettant de calculer la TF 1D du contour
+%%
+%Fonction permettant de calculer la TF 1D du contour
 function [F] = TF1D (contourM)
     F= fft(contourM);
     %F= fft(contourM(1,:),contourM(2,:));
 end
 
-%%Fonction d'affichage
+%%
+%Fonction d'affichage
 function [] = affiche(I,centrex,centrey,contourM,F)
     %centre
     subplot(3,5,1)
@@ -109,8 +174,8 @@ function [] = affiche(I,centrex,centrey,contourM,F)
     subplot(3,5,[4 5])
     plot(F);
     title('Calcul de TF 1D')
-    xlabel('Amplitude')
-    ylabel('Fréquences')
+    xlabel('Fréquences')
+    ylabel('Amplitude')
     
     %TOP5 score
         %1

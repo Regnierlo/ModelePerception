@@ -92,18 +92,21 @@ function [contourM] = contour(I,centrex,centrey,n)
         %calcul du coef directeur (à revoir parce que je n'arrive pas à
         %tracer l'ensemble des traits, genre ça va de 3pi/2 à 11pi/6 et je
         %ne sais pas pourquoi... 
-        alpha = tan(rad2deg(i/2*n*pi));
+        pas = (i*(360/n));
+        alpha = pas;
+        %alpha = tan(rad2deg(i/2*n*pi));
         
         %le 1 est arbitraire car coefDirecteur = y / tan(alpha), or ici y
         %est le pdist2([centrex, centrey], [???,???]) en gros c'est la
         %droite qui fait l'angle alpha avec l'abscisse/ordonnée suivant le
         %cadran du cercle trigo... Donc ici c'est le point obscure qui faut
         %travailler mais là il est 3h30 du mat et je vais dormir lel
-        coefD = 1/alpha;
+        coefD = 1/(tan(alpha));
+        %coefD = 1/alpha;
         %fin du calcul du coef directeur
          
         %appel de la fonction bresenham
-        [x2,y2] = bresenham(I,coefD,centrex,centrey);
+        [x2,y2] = bresenham(I,coefD,centrex,centrey,alpha);
         
         %on met dans la 1e ligne de la matrice contour m : l'angle à
         %l'indice i 
@@ -126,7 +129,7 @@ end
 
 %%
 %Fonction permettant de déterminer le contour d'un objet
-function [x,y] = bresenham(I,d,midx,midy)    
+function [x,y] = bresenham(I,d,midx,midy,angle)    
      S=2*d-1;
      inc1=2*d;
      inc2=2*d-2;
@@ -140,9 +143,43 @@ function [x,y] = bresenham(I,d,midx,midy)
              S = S + inc1;
          else
              S = S + inc2;
+             if angle >= 0 && angle < 45
+                x = x - 1;
+             elseif angle >= 45 && angle < 90
+                 y = y + 1;
+             elseif angle >= 90 && angle < 135
+                 y = y - 1;
+             elseif angle >= 135 && angle < 180
+                 x = x - 1;
+             elseif angle >= 180 && angle <  225
+                 x = x + 1;
+             elseif angle >= 225 && angle < 270
+                 y = y - 1;
+             elseif angle >= 270 && angle < 315
+                 y = y + 1;
+             else %angle >= 315 && angle < 360
+                 x = x + 1;
+             end
+         end
+         
+         if angle >= 0 && angle < 45
+                y = y + 1;
+         elseif angle >= 45 && angle < 90
+             x = x - 1;
+         elseif angle >= 90 && angle < 135
+             x = x - 1;
+         elseif angle >= 135 && angle < 180
+            y = y - 1;
+         elseif angle >= 180 && angle <  225
+             y = y - 1;
+         elseif angle >= 225 && angle < 270
+             x = x + 1;
+         elseif angle >= 270 && angle < 315
+             x = x + 1;
+         else %angle >= 315 && angle < 360
              y = y + 1;
          end
-         x=x+1;
+         
      end
 end
 
